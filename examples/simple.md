@@ -1,4 +1,4 @@
-# Heading A
+# Simple example
 
 This is a simple example of a markdown document containing a script to extract.
 
