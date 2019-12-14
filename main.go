@@ -22,11 +22,15 @@ func main() {
 	flag.Parse()
 
 	if input == nil || *input == "" {
-		panic("No valid input")
+		println("No valid input file specified. Parameters:")
+		flag.PrintDefaults()
+		return
 	}
 
 	if output == nil || *output == "" {
-		panic("Output folder is not set")
+		println("No valid output directory specified. Parameters:")
+		flag.PrintDefaults()
+		return
 	}
 
 	file, err := ioutil.ReadFile(*input)
