@@ -1,8 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"strings"
+	"regexp"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -15,6 +14,8 @@ type scriptRenderer struct {
 	Output map[string][]byte
 	html.Config
 }
+
+var filePragmaRE = regexp.MustCompile(`###\s*FILE:\s*(.*)\s*$`)
 
 func newScriptRenderer(opts ...html.Option) *scriptRenderer {
 	r := &scriptRenderer{
@@ -38,10 +39,9 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 			line := node.Lines().At(i)
 			value := line.Value(source)
 			if i == 0 {
-				if !bytes.HasPrefix(value, []byte("### FILE: ")) {
-					continue
-				} else {
-					filepath = strings.TrimSpace(string(value[10:]))
+				filePragmaRE.Longest()
+				if match := filePragmaRE.FindSubmatch(value); match != nil {
+					filepath = string(match[1])
 				}
 			} else {
 				r.Output[filepath] = append(r.Output[filepath], value...)
