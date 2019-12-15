@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"path/filepath"
 	"regexp"
 
 	"github.com/yuin/goldmark"
@@ -34,17 +36,26 @@ func (r *scriptRenderer) renderNoop(w util.BufWriter, source []byte, node ast.No
 
 func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		filepath := ""
+		path := ""
 		for i := 0; i < node.Lines().Len(); i++ {
 			line := node.Lines().At(i)
 			value := line.Value(source)
 			if i == 0 {
 				filePragmaRE.Longest()
 				if match := filePragmaRE.FindSubmatch(value); match != nil {
-					filepath = string(match[1])
+					p := filepath.ToSlash(string(match[1]))
+					switch {
+					case filepath.IsAbs(p):
+						fmt.Printf("Warning: absolute paths are not allowed, ignoring path: %s\n", p)
+					case filepath.Clean("/"+p) != "/"+p:
+						fmt.Printf("Warning: using .. in paths is not allowed, ignoring path: %s\n", p)
+					default:
+						// accept this path
+						path = p
+					}
 				}
 			} else {
-				r.Output[filepath] = append(r.Output[filepath], value...)
+				r.Output[path] = append(r.Output[path], value...)
 			}
 		}
 	}

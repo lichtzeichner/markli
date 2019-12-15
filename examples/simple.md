@@ -6,6 +6,6 @@ Use `markli -i simple.md` to create hello.sh in the same folder.
 
 ```sh
 ### FILE: hello.sh
-#!/bin/env bash
+#!/usr/bin/env bash
 echo "Hello, World"
 ```
