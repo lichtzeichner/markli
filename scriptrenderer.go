@@ -45,6 +45,8 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 				if match := filePragmaRE.FindSubmatch(value); match != nil {
 					p := filepath.ToSlash(string(match[1]))
 					switch {
+					case p == "":
+						fmt.Printf("Warning: ingoring empty path")
 					case filepath.IsAbs(p):
 						fmt.Printf("Warning: absolute paths are not allowed, ignoring path: %s\n", p)
 					case filepath.Clean("/"+p) != "/"+p:
@@ -53,6 +55,9 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 						// accept this path
 						path = p
 					}
+				}
+				if path == "" {
+					return
 				}
 			} else {
 				r.Output[path] = append(r.Output[path], value...)
