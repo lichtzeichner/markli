@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -43,13 +44,14 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 			if i == 0 {
 				filePragmaRE.Longest()
 				if match := filePragmaRE.FindSubmatch(value); match != nil {
-					p := filepath.ToSlash(string(match[1]))
+
+					p := filepath.ToSlash(strings.TrimSpace(string(match[1])))
 					switch {
 					case p == "":
 						fmt.Printf("Warning: ingoring empty path")
 					case filepath.IsAbs(p):
 						fmt.Printf("Warning: absolute paths are not allowed, ignoring path: %s\n", p)
-					case filepath.Clean("/"+p) != "/"+p:
+					case filepath.ToSlash(filepath.Clean("/"+p)) != "/"+p:
 						fmt.Printf("Warning: using .. in paths is not allowed, ignoring path: %s\n", p)
 					default:
 						// accept this path
