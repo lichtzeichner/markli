@@ -11,6 +11,25 @@ import (
 	"github.com/yuin/goldmark/parser"
 )
 
+func render(input []byte) (map[string][]byte, error) {
+	blocks := &scriptBlocks{}
+
+	md := goldmark.New(
+		goldmark.WithExtensions(extension.GFM),
+		goldmark.WithParserOptions(
+			parser.WithAutoHeadingID(),
+		),
+		goldmark.WithExtensions(
+			blocks,
+		),
+	)
+
+	var buf bytes.Buffer
+	err := md.Convert(input, &buf)
+
+	return blocks.renderer.Output, err
+}
+
 func main() {
 
 	input := flag.String("i", "", "Markdown file to process")
@@ -39,24 +58,14 @@ func main() {
 
 	}
 
-	blocks := &scriptBlocks{}
-
-	md := goldmark.New(
-		goldmark.WithExtensions(extension.GFM),
-		goldmark.WithParserOptions(
-			parser.WithAutoHeadingID(),
-		),
-		goldmark.WithExtensions(
-			blocks,
-		),
-	)
-
-	var buf bytes.Buffer
-	md.Convert(file, &buf)
-
 	outDir := *output
 
-	for filename, content := range blocks.renderer.Output {
+	rendered, err := render(file)
+	if err != nil {
+		panic(err)
+	}
+
+	for filename, content := range rendered {
 		path := filepath.Join(outDir, filename)
 		ioutil.WriteFile(path, content, 0755)
 	}
