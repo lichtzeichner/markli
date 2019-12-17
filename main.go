@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/yuin/goldmark"
@@ -66,7 +67,15 @@ func main() {
 	}
 
 	for filename, content := range rendered {
-		path := filepath.Join(outDir, filename)
-		ioutil.WriteFile(path, content, 0755)
+		path := filepath.Clean(filepath.Join(outDir, filename))
+		dir := filepath.Dir(path)
+
+		if err := os.MkdirAll(dir, 0644); err != nil {
+			panic(err)
+		}
+
+		if err := ioutil.WriteFile(path, content, 0755); err != nil {
+			panic(err)
+		}
 	}
 }
