@@ -1,7 +1,7 @@
 
 # Test filepath validation logic
 
-## Case 1 - Absolute paths
+## Unix - Absolute paths
 
 Using absolute paths is not allowed:
 
@@ -10,11 +10,34 @@ Using absolute paths is not allowed:
 pwned::0:0:root:/root:/bin/sh
 ```
 
-## Case 2 - Paths with ..
+## Unix - Paths with ..
 
 Using .. in paths is also forbidden:
 
 ```sh
 ### FILE: ../resolve.conf
 nameserver injecting.dns.org
+```
+
+## Windows - relative paths (with backward \)
+
+```
+### FILE: ..\..\something.txt
+Lorem ipsum
+```
+
+## Windows - Absolute paths (with backward \)
+
+```bat
+### FILE: C:\temp\evil.bat
+@echo off
+echo "EVIL"
+```
+
+## Windows - Absolute windows paths (With forward /)
+
+```bat
+### FILE: C:/temp/evil.bat
+@echo off
+echo "EVIL"
 ```

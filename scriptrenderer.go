@@ -13,12 +13,25 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
+// filepath.isAbs checks only for the platform the program is running on
+// this function checks for *ANY* kind of absolute path
+func isAbs(path string) bool {
+	if strings.HasPrefix(path, "/") {
+		return true
+	}
+	if driveLetterRE.Match([]byte(path)) {
+		return true
+	}
+	return false
+}
+
 type scriptRenderer struct {
 	Output map[string][]byte
 	html.Config
 }
 
 var filePragmaRE = regexp.MustCompile(`###\s*FILE:\s*(.*)\s*$`)
+var driveLetterRE = regexp.MustCompile(`^[a-zA-Z]:[\/]`)
 
 func newScriptRenderer(opts ...html.Option) *scriptRenderer {
 	r := &scriptRenderer{
@@ -49,7 +62,7 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 					switch {
 					case p == "":
 						fmt.Printf("Warning: ingoring empty path")
-					case filepath.IsAbs(p):
+					case isAbs(p):
 						fmt.Printf("Warning: absolute paths are not allowed, ignoring path: %s\n", p)
 					case filepath.ToSlash(filepath.Clean("/"+p)) != "/"+p:
 						fmt.Printf("Warning: using .. in paths is not allowed, ignoring path: %s\n", p)

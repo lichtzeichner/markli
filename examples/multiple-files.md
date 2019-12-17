@@ -8,8 +8,8 @@ This can also be used to store example configuration data. This time an alternat
 
     ### FILE: data.json
     {
-       "foo": "bar",
-       "hello": "world"
+        "foo": "bar",
+        "hello": "world"
     }
 
 
@@ -19,7 +19,7 @@ This is the second script.
 *Note: It needs the tool jq to run*
 
 ```sh
-    ### FILE: show.sh
-    #!/bin/bash
-    cat data.json | jq .
+### FILE: show.sh
+#!/bin/bash
+cat data.json | jq .
 ```

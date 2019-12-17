@@ -12,6 +12,12 @@ When called like this, all code-blocks containing `###FILE: ` within the first l
 
 See the examples subfolder for some use cases
 
+## Examples
+
+See the examples folder for basic use cases and features of markli. 
+
+**Note**: These example files are also used as tests, see `main_test.go`
+
 ## Acknowledgements
 
 Thanks to [simonfxr](https://github.com/simonfxr) for sharing the idea!
