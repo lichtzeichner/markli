@@ -1,3 +1,8 @@
+// This file tests the "render" function, to verify that
+// - correctly handles all ways to specify paths
+// - only handles valid paths
+// - correctly combines files specified in various places
+
 package main
 
 import (

@@ -31,6 +31,22 @@ func render(input []byte) (map[string][]byte, error) {
 	return blocks.renderer.Output, err
 }
 
+func writeRendered(outDir string, output map[string][]byte) error {
+	for filename, content := range output {
+		path := filepath.Clean(filepath.Join(outDir, filename))
+		dir := filepath.Dir(path)
+
+		if err := os.MkdirAll(dir, 0644); err != nil {
+			return err
+		}
+
+		if err := ioutil.WriteFile(path, content, 0755); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func main() {
 
 	input := flag.String("i", "", "Markdown file to process")
@@ -66,16 +82,7 @@ func main() {
 		panic(err)
 	}
 
-	for filename, content := range rendered {
-		path := filepath.Clean(filepath.Join(outDir, filename))
-		dir := filepath.Dir(path)
-
-		if err := os.MkdirAll(dir, 0644); err != nil {
-			panic(err)
-		}
-
-		if err := ioutil.WriteFile(path, content, 0755); err != nil {
-			panic(err)
-		}
+	if err := writeRendered(outDir, rendered); err != nil {
+		panic(err)
 	}
 }
