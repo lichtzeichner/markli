@@ -14,6 +14,7 @@ import (
 
 func render(input []byte) (map[string][]byte, error) {
 	blocks := &scriptBlocks{}
+	retval := make(map[string][]byte)
 
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
@@ -27,8 +28,14 @@ func render(input []byte) (map[string][]byte, error) {
 
 	var buf bytes.Buffer
 	err := md.Convert(input, &buf)
+	if err != nil {
+		return retval, err
+	}
 
-	return blocks.renderer.Output, err
+	for k, v := range blocks.renderer.Output {
+		retval[k] = v.content
+	}
+	return retval, nil
 }
 
 func writeRendered(outDir string, output map[string][]byte) error {
@@ -36,7 +43,7 @@ func writeRendered(outDir string, output map[string][]byte) error {
 		path := filepath.Clean(filepath.Join(outDir, filename))
 		dir := filepath.Dir(path)
 
-		if err := os.MkdirAll(dir, 0644); err != nil {
+		if err := os.MkdirAll(dir, 0755); err != nil {
 			return err
 		}
 

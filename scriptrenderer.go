@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -25,18 +26,59 @@ func isAbs(path string) bool {
 	return false
 }
 
+func detectLineEnding(line []byte) string {
+	l := len(line)
+	sl := l - 2
+	if sl < 0 {
+		sl = 0
+	}
+	ending := line[sl:]
+	if bytes.Compare(ending, []byte{'\r', '\n'}) == 0 {
+		return "CRLF"
+	} else if bytes.Compare(ending, []byte{'\r'}) == 0 {
+		return "CR"
+	}
+	return "LF"
+}
+
+type script struct {
+	content    []byte
+	lineEnding string
+}
+
+func (s *script) append(value []byte) {
+
+	if s.lineEnding != detectLineEnding(value) {
+		value = bytes.TrimRight(value, "\r\n")
+		if s.lineEnding == "CRLF" {
+			value = append(value, []byte{'\r', '\n'}...)
+		} else if s.lineEnding == "CR" {
+			value = append(value, '\r')
+		} else {
+			value = append(value, '\n')
+		}
+	}
+	s.content = append(s.content, value...)
+}
+
+func (s *script) initLineEnding(lineEnding string) {
+	if s.lineEnding == "" {
+		s.lineEnding = lineEnding
+	}
+}
+
 type scriptRenderer struct {
-	Output map[string][]byte
+	Output map[string]script
 	html.Config
 }
 
-var filePragmaRE = regexp.MustCompile(`###\s*FILE:\s*(.*)\s*$`)
+var filePragmaRE = regexp.MustCompile(`###\s*FILE(-CR|-LF|-CRLF)?:\s*(.*)\s*$`)
 var driveLetterRE = regexp.MustCompile(`^[a-zA-Z]:[\/]`)
 
 func newScriptRenderer(opts ...html.Option) *scriptRenderer {
 	r := &scriptRenderer{
 		Config: html.NewConfig(),
-		Output: make(map[string][]byte),
+		Output: make(map[string]script),
 	}
 	for _, opt := range opts {
 		opt.SetHTMLOption(&r.Config)
@@ -54,11 +96,15 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 		for i := 0; i < node.Lines().Len(); i++ {
 			line := node.Lines().At(i)
 			value := line.Value(source)
+			ending := detectLineEnding(value)
 			if i == 0 {
 				filePragmaRE.Longest()
 				if match := filePragmaRE.FindSubmatch(value); match != nil {
-
-					p := filepath.ToSlash(strings.TrimSpace(string(match[1])))
+					desiredEnding := match[1]
+					if len(desiredEnding) > 0 {
+						ending = string(desiredEnding[1:]) // Cut the - from -CRLF
+					}
+					p := filepath.ToSlash(strings.TrimSpace(string(match[2])))
 					switch {
 					case p == "":
 						fmt.Printf("Warning: ingoring empty path")
@@ -74,8 +120,13 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 				if path == "" {
 					return ast.WalkContinue, nil
 				}
+				sc := r.Output[path]
+				sc.initLineEnding(ending)
+				r.Output[path] = sc
 			} else {
-				r.Output[path] = append(r.Output[path], value...)
+				sc := r.Output[path]
+				sc.append(value)
+				r.Output[path] = sc
 			}
 		}
 	}

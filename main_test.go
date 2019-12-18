@@ -93,3 +93,33 @@ func TestRenderWindowsSeparator(t *testing.T) {
 	helloBat := "@echo off\r\necho Hello,\r\necho Same File\r\n"
 	assertOutput(t, output["example/hello.bat"], helloBat)
 }
+
+func TestRenderLineEndings(t *testing.T) {
+	input := readExampleFile("lineendings.md")
+
+	output, err := render(input)
+
+	assert.Assert(t, err == nil)
+	assert.Assert(t, len(output) == 4)
+
+	unixSh := "#!/usr/bin/env bash\necho \"Using LF on linux\"\n"
+	assertOutput(t, output["unix.sh"], unixSh)
+
+	windowsBat := "@echo off\r\necho For windows\r\necho Use CRLF\r\n"
+	assertOutput(t, output["windows.bat"], windowsBat)
+
+	splittedSh := "#!/usr/bin/env bash\necho \"This file, will use LF.\"\necho \"Because LF was specified first.\"\necho \"It's not important to keep all FILE-pragmas in sync.\"\n"
+	assertOutput(t, output["splitted.sh"], splittedSh)
+
+	exampleTxt := "This file uses \\r\ras line ending.\r"
+	assertOutput(t, output["example.txt"], exampleTxt)
+}
+
+func TestInvalidPragma(t *testing.T) {
+	input := []byte("```sh\n### FILE-CRFL: invalid.txt\nshould not be rendered\n```")
+
+	output, err := render(input)
+
+	assert.Assert(t, err == nil)
+	assert.Assert(t, len(output) == 0)
+}
