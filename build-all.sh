@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bash -e
+#!/bin/bash -e
 
 function build() {
     local os=$1
