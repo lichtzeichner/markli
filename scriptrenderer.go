@@ -58,16 +58,20 @@ type script struct {
 func (s *script) append(value []byte) {
 
 	if s.lineEnding != detectLineEnding(value) {
-		value = bytes.TrimRight(value, "\r\n")
+		cp := make([]byte, len(value))
+		copy(cp, value)
+		cp = bytes.TrimRight(cp, "\r\n")
 		if s.lineEnding == "CRLF" {
-			value = append(value, []byte{'\r', '\n'}...)
+			cp = append(cp, []byte{'\r', '\n'}...)
 		} else if s.lineEnding == "CR" {
-			value = append(value, '\r')
+			cp = append(cp, '\r')
 		} else {
-			value = append(value, '\n')
+			cp = append(cp, '\n')
 		}
+		s.content = append(s.content, cp...)
+	} else {
+		s.content = append(s.content, value...)
 	}
-	s.content = append(s.content, value...)
 }
 
 func (s *script) initLineEnding(lineEnding string) {
