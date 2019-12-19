@@ -1,4 +1,5 @@
 [![Actions Status](https://github.com/lichtzeichner/markli/workflows/tests/badge.svg)](https://github.com/lichtzeichner/markli/actions)
+[![Actions Status](https://github.com/lichtzeichner/markli/workflows/build-binaries/badge.svg)](https://github.com/lichtzeichner/markli/actions)
 
 # markli
 
