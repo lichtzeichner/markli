@@ -1,9 +1,9 @@
-name: Tests
+name: tests
 on: [push, pull_request]
 jobs:
 
   test:
-    name: Test
+    name: test
     strategy:
       fail-fast: false
       matrix: 
