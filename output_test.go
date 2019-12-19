@@ -80,7 +80,7 @@ OUTER:
 
 func TestMain(m *testing.M) {
 
-	if err := os.Mkdir(baseDir, 0644); err != nil {
+	if err := os.Mkdir(baseDir, 0755); err != nil {
 		panic(err)
 	}
 

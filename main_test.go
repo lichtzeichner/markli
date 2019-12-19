@@ -54,7 +54,7 @@ func TestRenderMultipleFiles(t *testing.T) {
 	assert.Assert(t, len(output) == 2)
 
 	dataJSON := "{\r\n    \"foo\": \"bar\",\r\n    \"hello\": \"world\"\r\n}\r\n"
-	showSh := "#!/bin/bash\r\ncat data.json | jq .\r\n"
+	showSh := "#!/bin/bash\ncat data.json | jq .\n"
 
 	assertOutput(t, output["data.json"], dataJSON)
 	assertOutput(t, output["show.sh"], showSh)

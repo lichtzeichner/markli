@@ -5,7 +5,7 @@ This document illustrates, that one code file can be splitted into multiple code
 The first block illustrates that powershell will echo back any literal string in the source of a script:
 
 ```powershell
-### FILE: splitted.ps1
+### FILE-CRLF: splitted.ps1
 "Hello World"
 ```
 
