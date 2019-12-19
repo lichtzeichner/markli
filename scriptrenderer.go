@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -24,6 +23,16 @@ func isAbs(path string) bool {
 		return true
 	}
 	return false
+}
+
+// filepath.ToSlash() and .Clean() have platform-dependent behavior
+// this is not helpful in this case
+func hasDirUp(path string) bool {
+	return strings.Contains(path, "..")
+}
+
+func normalizePath(path string) string {
+	return strings.ReplaceAll(strings.TrimSpace(path), "\\", "/")
 }
 
 func detectLineEnding(line []byte) string {
@@ -104,13 +113,13 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 					if len(desiredEnding) > 0 {
 						ending = string(desiredEnding[1:]) // Cut the - from -CRLF
 					}
-					p := filepath.ToSlash(strings.TrimSpace(string(match[2])))
+					p := normalizePath(string(match[2]))
 					switch {
 					case p == "":
 						fmt.Printf("Warning: ingoring empty path")
 					case isAbs(p):
 						fmt.Printf("Warning: absolute paths are not allowed, ignoring path: %s\n", p)
-					case filepath.ToSlash(filepath.Clean("/"+p)) != "/"+p:
+					case hasDirUp(p):
 						fmt.Printf("Warning: using .. in paths is not allowed, ignoring path: %s\n", p)
 					default:
 						// accept this path
