@@ -1,4 +1,4 @@
-name: Go
+name: build-binaries
 on: [push]
 jobs:
 
@@ -20,7 +20,7 @@ jobs:
       run: go get -v -t -d ./...
 
     - name: Build
-      run: ./build-all.sh
+      run: chmod +x build-all.sh; ./build-all.sh
 
     - uses: actions/upload-artifact@v1
       with:
