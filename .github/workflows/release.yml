@@ -21,22 +21,22 @@ jobs:
     - name: Get dependencies
       run: go get -v -t -d ./...
 
+    - name: Running Tests
+      run: go test ./...
+
     - name: Build
-      run: chmod +x build-all.sh; ./build-all.sh
+      run: |
+        chmod +x build-all.sh
+        ./build-all.sh
+        zip --junk-paths markli.zip dist/*
 
-    - uses: actions/upload-artifact@v1
-      id: upload-artifacts
-      with:
-       name: markli-binaries
-       path: dist
-
-    - name: upload release asset
+    - name: Upload Release Asset
       if: github.event.action == 'published'
       uses: actions/upload-release-asset@v1.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: dist/'*'
+        asset_path: ./markli.zip
         asset_name: markli.zip
-        asset_content_type: application/octet-stream
+        asset_content_type: application/zip
