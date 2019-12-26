@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -88,10 +89,10 @@ type scriptRenderer struct {
 var filePragmaRE = regexp.MustCompile(`###\s*FILE(-CR|-LF|-CRLF)?:\s*(.*)\s*$`)
 var driveLetterRE = regexp.MustCompile(`^[a-zA-Z]:[\/]`)
 
-func newScriptRenderer(opts ...html.Option) *scriptRenderer {
+func newScriptRenderer(rendered map[string]script, opts ...html.Option) *scriptRenderer {
 	r := &scriptRenderer{
 		Config: html.NewConfig(),
-		Output: make(map[string]script),
+		Output: rendered,
 	}
 	for _, opt := range opts {
 		opt.SetHTMLOption(&r.Config)
@@ -120,11 +121,11 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 					p := normalizePath(string(match[2]))
 					switch {
 					case p == "":
-						fmt.Printf("Warning: ingoring empty path")
+						fmt.Fprintln(os.Stderr, "Warning: ingoring empty path")
 					case isAbs(p):
-						fmt.Printf("Warning: absolute paths are not allowed, ignoring path: %s\n", p)
+						fmt.Fprintf(os.Stderr, "Warning: absolute paths are not allowed, ignoring path: %s\n", p)
 					case hasDirUp(p):
-						fmt.Printf("Warning: using .. in paths is not allowed, ignoring path: %s\n", p)
+						fmt.Fprintf(os.Stderr, "Warning: using .. in paths is not allowed, ignoring path: %s\n", p)
 					default:
 						// accept this path
 						path = p
@@ -171,14 +172,24 @@ func (r *scriptRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) 
 }
 
 type scriptBlocks struct {
+	rendered map[string]script
 	renderer *scriptRenderer
+}
+
+func newScriptBlocks(rendered map[string]script) scriptBlocks {
+	if rendered == nil {
+		panic("output struct must be initialized")
+	}
+	e := scriptBlocks{}
+	e.rendered = rendered
+	return e
 }
 
 func (e *scriptBlocks) Extend(m goldmark.Markdown) {
 	if e.renderer != nil {
 		panic("scriptBlocks can only be used once")
 	}
-	e.renderer = newScriptRenderer()
+	e.renderer = newScriptRenderer(e.rendered)
 
 	m.Renderer().AddOptions(renderer.WithNodeRenderers(
 		util.Prioritized(e.renderer, 500),

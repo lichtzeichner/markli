@@ -15,7 +15,7 @@ import (
 	"gotest.tools/assert"
 )
 
-func readExampleFile(name string) []byte {
+func readExampleFile(name string) [][]byte {
 
 	path := filepath.Join("./examples", name)
 
@@ -23,7 +23,10 @@ func readExampleFile(name string) []byte {
 	if err != nil {
 		panic(err)
 	}
-	return bytes
+
+	var ret [][]byte
+	ret = append(ret, bytes)
+	return ret
 }
 
 func assertOutput(t *testing.T, outBytes []byte, reference string) {
@@ -119,9 +122,57 @@ func TestRenderLineEndings(t *testing.T) {
 
 func TestInvalidPragma(t *testing.T) {
 	input := []byte("```sh\n### FILE-CRFL: invalid.txt\nshould not be rendered\n```")
+	var inputs [][]byte
+	inputs = append(inputs, input)
+
+	output, err := render(inputs)
+
+	assert.Assert(t, err == nil)
+	assert.Assert(t, len(output) == 0)
+}
+
+func TestRenderMultipleInputFilesSingleOutput(t *testing.T) {
+	input := readExampleFile("simple.md")
+	input = append(input, readExampleFile("multiple-inputs.md")...)
 
 	output, err := render(input)
 
 	assert.Assert(t, err == nil)
-	assert.Assert(t, len(output) == 0)
+	assert.Assert(t, len(output) == 1)
+
+	sh := "#!/usr/bin/env bash\necho \"Hello, World\"\necho \"Hello from second file\"\n"
+	assertOutput(t, output["hello.sh"], sh)
+}
+
+func TestRenderMultipleInputOutput(t *testing.T) {
+	input := readExampleFile("multiple-files.md")
+	input = append(input, readExampleFile("lineendings.md")...)
+	input = append(input, readExampleFile("simple.md")...)
+	input = append(input, readExampleFile("multiple-inputs.md")...)
+
+	output, err := render(input)
+
+	assert.Assert(t, err == nil)
+	assert.Assert(t, len(output) == 7)
+
+	dataJSON := "{\r\n    \"foo\": \"bar\",\r\n    \"hello\": \"world\"\r\n}\r\n"
+	showSh := "#!/bin/bash\ncat data.json | jq .\n"
+
+	assertOutput(t, output["data.json"], dataJSON)
+	assertOutput(t, output["show.sh"], showSh)
+
+	unixSh := "#!/usr/bin/env bash\necho \"Using LF on linux\"\n"
+	assertOutput(t, output["unix.sh"], unixSh)
+
+	windowsBat := "@echo off\r\necho For windows\r\necho Use CRLF\r\n"
+	assertOutput(t, output["windows.bat"], windowsBat)
+
+	splittedSh := "#!/usr/bin/env bash\necho \"This file, will use LF.\"\necho \"Because LF was specified first.\"\necho \"It's not important to keep all FILE-pragmas in sync.\"\n"
+	assertOutput(t, output["splitted.sh"], splittedSh)
+
+	exampleTxt := "This file uses \\r\ras line ending.\r"
+	assertOutput(t, output["example.txt"], exampleTxt)
+
+	sh := "#!/usr/bin/env bash\necho \"Hello, World\"\necho \"Hello from second file\"\n"
+	assertOutput(t, output["hello.sh"], sh)
 }

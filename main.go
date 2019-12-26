@@ -2,18 +2,22 @@ package main
 
 import (
 	"bytes"
-	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	flag "github.com/spf13/pflag"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 )
 
-func render(input []byte) (map[string][]byte, error) {
-	blocks := &scriptBlocks{}
+func render(inputs [][]byte) (map[string][]byte, error) {
+
+	output := make(map[string]script)
+	blocks := newScriptBlocks(output)
 	retval := make(map[string][]byte)
 
 	md := goldmark.New(
@@ -22,17 +26,19 @@ func render(input []byte) (map[string][]byte, error) {
 			parser.WithAutoHeadingID(),
 		),
 		goldmark.WithExtensions(
-			blocks,
+			&blocks,
 		),
 	)
 
 	var buf bytes.Buffer
-	err := md.Convert(input, &buf)
-	if err != nil {
-		return retval, err
+	for _, input := range inputs {
+		err := md.Convert(input, &buf)
+		if err != nil {
+			return retval, err
+		}
 	}
 
-	for k, v := range blocks.renderer.Output {
+	for k, v := range output {
 		retval[k] = v.content
 	}
 	return retval, nil
@@ -56,35 +62,30 @@ func writeRendered(outDir string, output map[string][]byte) error {
 
 func main() {
 
-	input := flag.String("i", "", "Markdown file to process")
-	flag.StringVar(input, "input", "", "Markdown file to process")
+	var inputFiles []string
+	var outDir string
+	var rendered map[string][]byte
+	var inputs [][]byte
 
-	output := flag.String("o", ".", "Output directory.")
-	flag.StringVar(output, "out-dir", ".", "Output directory.")
-
+	flag.StringArrayVarP(&inputFiles, "input", "i", []string{}, "Markdown file to process, use - for stdin")
+	flag.StringVarP(&outDir, "out-dir", "o", ".", "Output directory.")
 	flag.Parse()
 
-	if input == nil || *input == "" {
-		println("No valid input file specified. Parameters:")
-		flag.PrintDefaults()
-		return
+	if len(inputFiles) == 0 {
+		fmt.Fprint(os.Stderr, "No inputs specified\n")
+		flag.Usage()
+		os.Exit(1)
 	}
 
-	if output == nil || *output == "" {
-		println("No valid output directory specified. Parameters:")
-		flag.PrintDefaults()
-		return
+	for _, file := range inputFiles {
+		input, err := ioutil.ReadFile(file)
+		if err != nil {
+			panic(err)
+		}
+		inputs = append(inputs, input)
 	}
 
-	file, err := ioutil.ReadFile(*input)
-	if err != nil {
-		panic(err)
-
-	}
-
-	outDir := *output
-
-	rendered, err := render(file)
+	rendered, err := render(inputs)
 	if err != nil {
 		panic(err)
 	}
