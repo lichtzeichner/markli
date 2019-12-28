@@ -1,6 +1,13 @@
 
 # Test filepath validation logic
 
+## Empty paths
+
+```sh
+### FILE:
+Nope!
+```
+
 ## Unix - Absolute paths
 
 Using absolute paths is not allowed:
