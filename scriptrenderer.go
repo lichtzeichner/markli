@@ -14,6 +14,28 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
+type lineEndingStyle int8
+
+const (
+	lineEndingUnknown lineEndingStyle = iota
+	lineEndingCR
+	lineEndingLF
+	lineEndingCRLF
+)
+
+func parseLineEndingStyle(style string) lineEndingStyle {
+	switch style {
+	case "CR":
+		return lineEndingCR
+	case "LF":
+		return lineEndingLF
+	case "CRLF":
+		return lineEndingCRLF
+	default:
+		panic("Should not happen")
+	}
+}
+
 // filepath.isAbs checks only for the platform the program is running on
 // this function checks for *ANY* kind of absolute path
 func isAbs(path string) bool {
@@ -36,24 +58,20 @@ func normalizePath(path string) string {
 	return strings.ReplaceAll(strings.TrimSpace(path), "\\", "/")
 }
 
-func detectLineEnding(line []byte) string {
-	l := len(line)
-	sl := l - 2
-	if sl < 0 {
-		sl = 0
+func detectLineEnding(line []byte) lineEndingStyle {
+	switch {
+	case len(line) > 0 && line[len(line)-1] == '\r':
+		return lineEndingCR
+	case len(line) > 1 && line[len(line)-2] == '\r':
+		return lineEndingCRLF
+	default:
+		return lineEndingLF
 	}
-	ending := line[sl:]
-	if bytes.Equal(ending, []byte{'\r', '\n'}) {
-		return "CRLF"
-	} else if bytes.Equal(ending, []byte{'\r'}) {
-		return "CR"
-	}
-	return "LF"
 }
 
 type script struct {
 	content    []byte
-	lineEnding string
+	lineEnding lineEndingStyle
 }
 
 func (s *script) append(value []byte) {
@@ -63,9 +81,9 @@ func (s *script) append(value []byte) {
 		cp = bytes.TrimRight(cp, "\r\n")
 
 		switch s.lineEnding {
-		case "CRLF":
+		case lineEndingCRLF:
 			cp = append(cp, []byte{'\r', '\n'}...)
-		case "CR":
+		case lineEndingCR:
 			cp = append(cp, '\r')
 		default:
 			cp = append(cp, '\n')
@@ -76,8 +94,8 @@ func (s *script) append(value []byte) {
 	}
 }
 
-func (s *script) initLineEnding(lineEnding string) {
-	if s.lineEnding == "" {
+func (s *script) initLineEnding(lineEnding lineEndingStyle) {
+	if s.lineEnding == lineEndingUnknown {
 		s.lineEnding = lineEnding
 	}
 }
@@ -117,7 +135,8 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 				if match := filePragmaRE.FindSubmatch(value); match != nil {
 					desiredEnding := match[1]
 					if len(desiredEnding) > 0 {
-						ending = string(desiredEnding[1:]) // Cut the - from -CRLF
+						// Cut the - from -CRLF
+						ending = parseLineEndingStyle(string(desiredEnding[1:]))
 					}
 					p := normalizePath(string(match[2]))
 					switch {

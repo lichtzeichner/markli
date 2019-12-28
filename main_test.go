@@ -217,3 +217,18 @@ func TestRenderMultipleInputOutput(t *testing.T) {
 	sh := "#!/usr/bin/env bash\necho \"Hello, World\"\necho \"Hello from second file\"\n"
 	assertOutput(t, output["hello.sh"], sh)
 }
+
+func TestLineEndingDetection(t *testing.T) {
+	// Empty input defaults to LF
+	assert.Assert(t, detectLineEnding(nil) == lineEndingLF)
+
+	// Empty lines
+	assert.Assert(t, detectLineEnding([]byte("\r")) == lineEndingCR)
+	assert.Assert(t, detectLineEnding([]byte("\n")) == lineEndingLF)
+	assert.Assert(t, detectLineEnding([]byte("\r\n")) == lineEndingCRLF)
+
+	// Mixed style
+	assert.Assert(t, detectLineEnding([]byte("\n\r")) == lineEndingCR)
+	assert.Assert(t, detectLineEnding([]byte("a\rb\n")) == lineEndingLF)
+	assert.Assert(t, detectLineEnding([]byte("c\n\r\n")) == lineEndingCRLF)
+}
