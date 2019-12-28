@@ -37,6 +37,49 @@ func assertOutput(t *testing.T, outBytes []byte, reference string) {
 	}
 }
 
+func lineEndingTestHelper(t *testing.T, input string, expectedFilename string, expected string) {
+	output, err := render([][]byte{[]byte(input)})
+	assert.Assert(t, err == nil)
+	assert.Assert(t, len(output) == 1)
+	assertOutput(t, output[expectedFilename], expected)
+}
+
+func TestMarkdownCrFileCrLf(t *testing.T) {
+	// goldmark can't cope with \r as line-ending for markdown files
+	// therefore this is not expected to have any output.
+	input := "Foo\r```sh\r### FILE-CRLF: foo.txt\rshould have lf\rline ending\r```\r"
+
+	output, err := render([][]byte{[]byte(input)})
+
+	assert.Assert(t, err == nil)
+	assert.Assert(t, len(output) == 0)
+
+}
+
+func TestMarkdownCrLfFileLf(t *testing.T) {
+	// Test the FILE-pragma in a platform independent way
+	input := "Foo\r\n```sh\n### FILE-LF: foo.txt\r\nshould have lf\r\nline ending\r\n```\r\n"
+	expected := "should have lf\nline ending\n"
+
+	lineEndingTestHelper(t, input, "foo.txt", expected)
+}
+
+func TestMarkdownCrLfFileCr(t *testing.T) {
+	// Test the FILE-pragma in a platform independent way
+	input := "Foo\r\n```sh\n### FILE-CR: foo.txt\r\nshould have lf\r\nline ending\r\n```\r\n"
+	expected := "should have lf\rline ending\r"
+
+	lineEndingTestHelper(t, input, "foo.txt", expected)
+}
+
+func TestMarkdownLfFileCrLf(t *testing.T) {
+	// Test the FILE-pragma in a platform independent way
+	input := "Foo\n```sh\n### FILE-CRLF: foo.txt\nshould have lf\nline ending\n```\n"
+	expected := "should have lf\r\nline ending\r\n"
+
+	lineEndingTestHelper(t, input, "foo.txt", expected)
+}
+
 func TestRenderSimple(t *testing.T) {
 	input := readExampleFile("simple.md")
 
