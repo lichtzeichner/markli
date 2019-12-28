@@ -10,7 +10,6 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
-	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/util"
 )
 
@@ -102,21 +101,13 @@ func (s *script) initLineEnding(lineEnding lineEndingStyle) {
 
 type scriptRenderer struct {
 	Output map[string]script
-	html.Config
 }
 
 var filePragmaRE = regexp.MustCompile(`###\s*FILE(-CR|-LF|-CRLF)?:\s*(.*)\s*$`)
 var driveLetterRE = regexp.MustCompile(`^[a-zA-Z]:[\/]`)
 
-func newScriptRenderer(rendered map[string]script, opts ...html.Option) *scriptRenderer {
-	r := &scriptRenderer{
-		Config: html.NewConfig(),
-		Output: rendered,
-	}
-	for _, opt := range opts {
-		opt.SetHTMLOption(&r.Config)
-	}
-	return r
+func newScriptRenderer(rendered map[string]script) *scriptRenderer {
+	return &scriptRenderer{Output: rendered}
 }
 
 func (r *scriptRenderer) renderNoop(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
