@@ -77,10 +77,17 @@ func TestRenderWindowsSeparator(t *testing.T) {
 	output, err := render(input)
 
 	assert.Assert(t, err == nil)
-	assert.Assert(t, len(output) == 1)
-
-	helloBat := "@echo off\r\necho Hello,\r\necho Same File\r\n"
-	assertOutput(t, output["example/hello.bat"], helloBat)
+	if isWindows {
+		assert.Assert(t, len(output) == 1)
+		helloBat := "@echo off\r\necho Hello,\r\necho Same File\r\n"
+		assertOutput(t, output["example/hello.bat"], helloBat)
+	} else {
+		assert.Assert(t, len(output) == 2)
+		helloBat := "@echo off\r\necho Hello,\r\n"
+		assertOutput(t, output["example/hello.bat"], helloBat)
+		helloBat2 := "echo Same File\r\n"
+		assertOutput(t, output[`example\hello.bat`], helloBat2)
+	}
 }
 
 func TestRenderLineEndings(t *testing.T) {
