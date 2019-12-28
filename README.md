@@ -1,5 +1,7 @@
 ![Actions Status](https://github.com/lichtzeichner/markli/workflows/tests/badge.svg)
+![Actions Status](https://github.com/lichtzeichner/markli/workflows/lint/badge.svg)
 ![Actions Status](https://github.com/lichtzeichner/markli/workflows/build-binaries/badge.svg)
+
 # markli
 
 markli is a simple commandline tool to support [literate programming](https://en.wikipedia.org/wiki/Literate_programming). It's main focus is better support for setup scripts that configure build machines or there alike. Basically you have much more documentation than actual code.

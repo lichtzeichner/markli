@@ -16,7 +16,6 @@ import (
 )
 
 func readExampleFile(name string) [][]byte {
-
 	path := filepath.Join("./examples", name)
 
 	bytes, err := ioutil.ReadFile(path)
@@ -31,7 +30,7 @@ func readExampleFile(name string) [][]byte {
 
 func assertOutput(t *testing.T, outBytes []byte, reference string) {
 	// If a test is successful, t.Log is ignored
-	if bytes.Compare(outBytes, []byte(reference)) != 0 {
+	if !bytes.Equal(outBytes, []byte(reference)) {
 		t.Logf("actual:\n%s\n", hex.Dump(outBytes))
 		t.Logf("expected:\n%s\n", hex.Dump([]byte(reference)))
 		t.Fatal("output differs from reference")

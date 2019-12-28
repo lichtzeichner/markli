@@ -15,7 +15,6 @@ import (
 )
 
 func render(inputs [][]byte) (map[string][]byte, error) {
-
 	output := make(map[string]script)
 	blocks := newScriptBlocks(output)
 	retval := make(map[string][]byte)
@@ -61,21 +60,23 @@ func writeRendered(outDir string, output map[string][]byte) error {
 }
 
 func main() {
-
 	var inputFiles []string
 	var outDir string
 	var rendered map[string][]byte
-	var inputs [][]byte
 
 	flag.StringArrayVarP(&inputFiles, "input", "i", []string{}, "Markdown file to process, use - for stdin")
 	flag.StringVarP(&outDir, "out-dir", "o", ".", "Output directory.")
 	flag.Parse()
 
-	if len(inputFiles) == 0 {
+	inputCnt := len(inputFiles)
+
+	if inputCnt == 0 {
 		fmt.Fprint(os.Stderr, "No inputs specified\n")
 		flag.Usage()
 		os.Exit(1)
 	}
+
+	inputs := make([][]byte, 0, inputCnt)
 
 	for _, file := range inputFiles {
 		input, err := ioutil.ReadFile(file)

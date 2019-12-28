@@ -15,7 +15,7 @@ import (
 	"gotest.tools/assert"
 )
 
-var tempDirs = make(map[string]string, 0)
+var tempDirs = make(map[string]string)
 var baseDir string = "markli-testdir"
 
 func getTempDir(t *testing.T) string {
@@ -30,11 +30,11 @@ func getTempDir(t *testing.T) string {
 }
 
 func validateFile(t *testing.T, path string, expected []byte) {
-	baseDir := tempDirs[t.Name()]
-	if baseDir == "" {
+	dir := tempDirs[t.Name()]
+	if dir == "" {
 		t.Fatal("Could not find base dir for test: " + t.Name())
 	}
-	file := filepath.Join(baseDir, path)
+	file := filepath.Join(dir, path)
 	t.Logf("File: %s\n", file)
 	info, err := os.Stat(file)
 	assert.Assert(t, os.IsNotExist(err) == false)
@@ -45,7 +45,7 @@ func validateFile(t *testing.T, path string, expected []byte) {
 	}
 	t.Logf("actual:\n%s\n", hex.Dump(actual))
 	t.Logf("expected:\n%s\n", hex.Dump(expected))
-	assert.Assert(t, bytes.Compare(actual, expected) == 0)
+	assert.Assert(t, bytes.Equal(actual, expected))
 }
 
 func validateDirStruct(t *testing.T, toScan string, expectedFiles []string) {
@@ -79,7 +79,6 @@ OUTER:
 }
 
 func TestMain(m *testing.M) {
-
 	if err := os.Mkdir(baseDir, 0755); err != nil {
 		panic(err)
 	}
@@ -91,7 +90,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestOutputFile(t *testing.T) {
-
 	dir := getTempDir(t)
 
 	output := make(map[string][]byte)
@@ -108,7 +106,6 @@ func TestOutputFile(t *testing.T) {
 }
 
 func TestOutputDir(t *testing.T) {
-
 	dir := getTempDir(t)
 
 	output := make(map[string][]byte)
@@ -126,7 +123,6 @@ func TestOutputDir(t *testing.T) {
 }
 
 func TestOutputMulti(t *testing.T) {
-
 	dir := getTempDir(t)
 
 	output := make(map[string][]byte)

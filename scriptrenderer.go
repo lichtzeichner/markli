@@ -43,9 +43,9 @@ func detectLineEnding(line []byte) string {
 		sl = 0
 	}
 	ending := line[sl:]
-	if bytes.Compare(ending, []byte{'\r', '\n'}) == 0 {
+	if bytes.Equal(ending, []byte{'\r', '\n'}) {
 		return "CRLF"
-	} else if bytes.Compare(ending, []byte{'\r'}) == 0 {
+	} else if bytes.Equal(ending, []byte{'\r'}) {
 		return "CR"
 	}
 	return "LF"
@@ -57,16 +57,17 @@ type script struct {
 }
 
 func (s *script) append(value []byte) {
-
 	if s.lineEnding != detectLineEnding(value) {
 		cp := make([]byte, len(value))
 		copy(cp, value)
 		cp = bytes.TrimRight(cp, "\r\n")
-		if s.lineEnding == "CRLF" {
+
+		switch s.lineEnding {
+		case "CRLF":
 			cp = append(cp, []byte{'\r', '\n'}...)
-		} else if s.lineEnding == "CR" {
+		case "CR":
 			cp = append(cp, '\r')
-		} else {
+		default:
 			cp = append(cp, '\n')
 		}
 		s.content = append(s.content, cp...)
