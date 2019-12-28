@@ -53,7 +53,6 @@ func TestMarkdownCrFileCrLf(t *testing.T) {
 
 	assert.Assert(t, err == nil)
 	assert.Assert(t, len(output) == 0)
-
 }
 
 func TestMarkdownCrLfFileLf(t *testing.T) {
