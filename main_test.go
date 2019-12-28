@@ -1,48 +1,12 @@
-// This file tests the "render" function, to verify that
-// - correctly handles all ways to specify paths
-// - only handles valid paths
-// - correctly combines files specified in various places
+// Tests for various functions of markli using fixed inputs and outputs
 
 package main
 
 import (
-	"bytes"
-	"encoding/hex"
-	"io/ioutil"
-	"path/filepath"
 	"testing"
 
 	"gotest.tools/assert"
 )
-
-func readExampleFile(name string) [][]byte {
-	path := filepath.Join("./examples", name)
-
-	bytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-
-	var ret [][]byte
-	ret = append(ret, bytes)
-	return ret
-}
-
-func assertOutput(t *testing.T, outBytes []byte, reference string) {
-	// If a test is successful, t.Log is ignored
-	if !bytes.Equal(outBytes, []byte(reference)) {
-		t.Logf("actual:\n%s\n", hex.Dump(outBytes))
-		t.Logf("expected:\n%s\n", hex.Dump([]byte(reference)))
-		t.Fatal("output differs from reference")
-	}
-}
-
-func lineEndingTestHelper(t *testing.T, input string, expectedFilename string, expected string) {
-	output, err := render([][]byte{[]byte(input)})
-	assert.Assert(t, err == nil)
-	assert.Assert(t, len(output) == 1)
-	assertOutput(t, output[expectedFilename], expected)
-}
 
 func TestMarkdownCrFileCrLf(t *testing.T) {
 	// goldmark can't cope with \r as line-ending for markdown files
@@ -79,88 +43,6 @@ func TestMarkdownLfFileCrLf(t *testing.T) {
 	lineEndingTestHelper(t, input, "foo.txt", expected)
 }
 
-func TestRenderSimple(t *testing.T) {
-	input := readExampleFile("simple.md")
-
-	output, err := render(input)
-
-	assert.Assert(t, err == nil)
-	assert.Assert(t, len(output) == 1)
-
-	sh := "#!/usr/bin/env bash\necho \"Hello, World\"\n"
-	assertOutput(t, output["hello.sh"], sh)
-}
-
-func TestRenderMultipleFiles(t *testing.T) {
-	input := readExampleFile("multiple-files.md")
-
-	output, err := render(input)
-
-	assert.Assert(t, err == nil)
-	assert.Assert(t, len(output) == 2)
-
-	dataJSON := "{\r\n    \"foo\": \"bar\",\r\n    \"hello\": \"world\"\r\n}\r\n"
-	showSh := "#!/bin/bash\ncat data.json | jq .\n"
-
-	assertOutput(t, output["data.json"], dataJSON)
-	assertOutput(t, output["show.sh"], showSh)
-}
-
-func TestRenderSplitFile(t *testing.T) {
-	input := readExampleFile("split-file.md")
-
-	output, err := render(input)
-
-	assert.Assert(t, err == nil)
-	assert.Assert(t, len(output) == 1)
-
-	ps1 := "\"Hello World\"\r\ngci env:* | sort-object name\r\n"
-
-	assertOutput(t, output["splitted.ps1"], ps1)
-}
-
-func TestRenderInvalid(t *testing.T) {
-	input := readExampleFile("invalid.md")
-
-	output, err := render(input)
-
-	assert.Assert(t, err == nil)
-	assert.Assert(t, len(output) == 0)
-}
-
-func TestRenderWindowsSeparator(t *testing.T) {
-	input := readExampleFile("windows-separators.md")
-
-	output, err := render(input)
-
-	assert.Assert(t, err == nil)
-	assert.Assert(t, len(output) == 1)
-
-	helloBat := "@echo off\r\necho Hello,\r\necho Same File\r\n"
-	assertOutput(t, output["example/hello.bat"], helloBat)
-}
-
-func TestRenderLineEndings(t *testing.T) {
-	input := readExampleFile("lineendings.md")
-
-	output, err := render(input)
-
-	assert.Assert(t, err == nil)
-	assert.Assert(t, len(output) == 4)
-
-	unixSh := "#!/usr/bin/env bash\necho \"Using LF on linux\"\n"
-	assertOutput(t, output["unix.sh"], unixSh)
-
-	windowsBat := "@echo off\r\necho For windows\r\necho Use CRLF\r\n"
-	assertOutput(t, output["windows.bat"], windowsBat)
-
-	splittedSh := "#!/usr/bin/env bash\necho \"This file, will use LF.\"\necho \"Because LF was specified first.\"\necho \"It's not important to keep all FILE-pragmas in sync.\"\n"
-	assertOutput(t, output["splitted.sh"], splittedSh)
-
-	exampleTxt := "This file uses \\r\ras line ending.\r"
-	assertOutput(t, output["example.txt"], exampleTxt)
-}
-
 func TestInvalidPragma(t *testing.T) {
 	input := []byte("```sh\n### FILE-CRFL: invalid.txt\nshould not be rendered\n```")
 	var inputs [][]byte
@@ -170,52 +52,6 @@ func TestInvalidPragma(t *testing.T) {
 
 	assert.Assert(t, err == nil)
 	assert.Assert(t, len(output) == 0)
-}
-
-func TestRenderMultipleInputFilesSingleOutput(t *testing.T) {
-	input := readExampleFile("simple.md")
-	input = append(input, readExampleFile("multiple-inputs.md")...)
-
-	output, err := render(input)
-
-	assert.Assert(t, err == nil)
-	assert.Assert(t, len(output) == 1)
-
-	sh := "#!/usr/bin/env bash\necho \"Hello, World\"\necho \"Hello from second file\"\n"
-	assertOutput(t, output["hello.sh"], sh)
-}
-
-func TestRenderMultipleInputOutput(t *testing.T) {
-	input := readExampleFile("multiple-files.md")
-	input = append(input, readExampleFile("lineendings.md")...)
-	input = append(input, readExampleFile("simple.md")...)
-	input = append(input, readExampleFile("multiple-inputs.md")...)
-
-	output, err := render(input)
-
-	assert.Assert(t, err == nil)
-	assert.Assert(t, len(output) == 7)
-
-	dataJSON := "{\r\n    \"foo\": \"bar\",\r\n    \"hello\": \"world\"\r\n}\r\n"
-	showSh := "#!/bin/bash\ncat data.json | jq .\n"
-
-	assertOutput(t, output["data.json"], dataJSON)
-	assertOutput(t, output["show.sh"], showSh)
-
-	unixSh := "#!/usr/bin/env bash\necho \"Using LF on linux\"\n"
-	assertOutput(t, output["unix.sh"], unixSh)
-
-	windowsBat := "@echo off\r\necho For windows\r\necho Use CRLF\r\n"
-	assertOutput(t, output["windows.bat"], windowsBat)
-
-	splittedSh := "#!/usr/bin/env bash\necho \"This file, will use LF.\"\necho \"Because LF was specified first.\"\necho \"It's not important to keep all FILE-pragmas in sync.\"\n"
-	assertOutput(t, output["splitted.sh"], splittedSh)
-
-	exampleTxt := "This file uses \\r\ras line ending.\r"
-	assertOutput(t, output["example.txt"], exampleTxt)
-
-	sh := "#!/usr/bin/env bash\necho \"Hello, World\"\necho \"Hello from second file\"\n"
-	assertOutput(t, output["hello.sh"], sh)
 }
 
 func TestLineEndingDetection(t *testing.T) {
@@ -231,4 +67,48 @@ func TestLineEndingDetection(t *testing.T) {
 	assert.Assert(t, detectLineEnding([]byte("\n\r")) == lineEndingCR)
 	assert.Assert(t, detectLineEnding([]byte("a\rb\n")) == lineEndingLF)
 	assert.Assert(t, detectLineEnding([]byte("c\n\r\n")) == lineEndingCRLF)
+}
+
+func TestPragmaParser(t *testing.T) {
+	n, e := parsePragma([]byte("### FILE: foo.sh"))
+	assert.Assert(t, n == "foo.sh")
+	assert.Assert(t, e == lineEndingUnknown)
+
+	n, e = parsePragma([]byte("### FILE-CRLF: foo/bar/baz/lol.txt"))
+	assert.Assert(t, n == "foo/bar/baz/lol.txt")
+	assert.Assert(t, e == lineEndingCRLF)
+
+	n, e = parsePragma([]byte(`### FILE-CRLF: foo\bar\baz\lol.txt`))
+	if isWindows {
+		assert.Assert(t, n == "foo/bar/baz/lol.txt")
+	} else {
+		assert.Assert(t, n == `foo\bar\baz\lol.txt`)
+	}
+	assert.Assert(t, e == lineEndingCRLF)
+
+	n, e = parsePragma([]byte("### FILE-CRLF: ### FILE-LF: recursive.txt"))
+	assert.Assert(t, n == "### FILE-LF: recursive.txt")
+	assert.Assert(t, e == lineEndingCRLF)
+
+	// systemd units can use \ in file names. But this means a directory with a file inside on windows
+	// both is valid depending on the platform. *sigh*
+	n, e = parsePragma([]byte("### FILE-LF: foo\\bar"))
+
+	if isWindows {
+		assert.Assert(t, n == "foo/bar")
+	} else {
+		assert.Assert(t, n == "foo\\bar")
+	}
+
+	assert.Assert(t, e == lineEndingLF)
+}
+
+func TestHasDirUp(t *testing.T) {
+	assert.Assert(t, hasDirUp("..") == true)
+	assert.Assert(t, hasDirUp("../foo") == true)
+	assert.Assert(t, hasDirUp(`.\.foo`) == false)
+	assert.Assert(t, hasDirUp("..foo") == false)
+	assert.Assert(t, hasDirUp("f..oo") == false)
+	assert.Assert(t, hasDirUp(`foo/../bar`) == true)
+	assert.Assert(t, hasDirUp(`foo/..`) == true)
 }

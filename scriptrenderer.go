@@ -2,8 +2,7 @@ package main
 
 import (
 	"bytes"
-	"fmt"
-	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -22,6 +21,19 @@ const (
 	lineEndingCRLF
 )
 
+func (style lineEndingStyle) String() string {
+	switch style {
+	case lineEndingCR:
+		return "CR"
+	case lineEndingLF:
+		return "LF"
+	case lineEndingCRLF:
+		return "CRLF"
+	default:
+		return "UNKNOWN"
+	}
+}
+
 func parseLineEndingStyle(style string) lineEndingStyle {
 	switch style {
 	case "CR":
@@ -31,30 +43,31 @@ func parseLineEndingStyle(style string) lineEndingStyle {
 	case "CRLF":
 		return lineEndingCRLF
 	default:
-		panic("Should not happen")
+		return lineEndingUnknown
 	}
 }
 
-// filepath.isAbs checks only for the platform the program is running on
-// this function checks for *ANY* kind of absolute path
+// IsAbs() returns false for /etc/passwd on windows
+// But if you do mkdir(/etc/passwd) you end up with C:/etc/passwd,
+// this is *not* what we want
+// therefore use filepath and check for / additionally
 func isAbs(path string) bool {
-	if strings.HasPrefix(path, "/") {
-		return true
-	}
-	if driveLetterRE.Match([]byte(path)) {
-		return true
-	}
-	return false
+	return filepath.IsAbs(path) || strings.HasPrefix(path, "/")
 }
 
 // filepath.ToSlash() and .Clean() have platform-dependent behavior
 // this is not helpful in this case
 func hasDirUp(path string) bool {
-	return strings.Contains(path, "..")
+	for _, element := range strings.Split(path, "/") {
+		if element == ".." {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizePath(path string) string {
-	return strings.ReplaceAll(strings.TrimSpace(path), "\\", "/")
+	return filepath.ToSlash(strings.TrimSpace(path))
 }
 
 func detectLineEnding(line []byte) lineEndingStyle {
@@ -103,8 +116,21 @@ type scriptRenderer struct {
 	Output map[string]script
 }
 
-var filePragmaRE = regexp.MustCompile(`###\s*FILE(-CR|-LF|-CRLF)?:\s*(.*)\s*$`)
-var driveLetterRE = regexp.MustCompile(`^[a-zA-Z]:[\/]`)
+var filePragmaRE = regexp.MustCompile(`###\s*FILE(-CR|-LF|-CRLF)?:(.*)\s*$`)
+
+func parsePragma(input []byte) (string, lineEndingStyle) {
+	ending := lineEndingUnknown
+	if match := filePragmaRE.FindSubmatch(input); match != nil {
+		desiredEnding := match[1]
+		if len(desiredEnding) > 0 {
+			// Cut the - from -CRLF
+			ending = parseLineEndingStyle(string(desiredEnding[1:]))
+		}
+		p := normalizePath(string(match[2]))
+		return p, ending
+	}
+	return "", ending
+}
 
 func newScriptRenderer(rendered map[string]script) *scriptRenderer {
 	return &scriptRenderer{Output: rendered}
@@ -122,21 +148,17 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 			value := line.Value(source)
 			ending := detectLineEnding(value)
 			if i == 0 {
-				filePragmaRE.Longest()
-				if match := filePragmaRE.FindSubmatch(value); match != nil {
-					desiredEnding := match[1]
-					if len(desiredEnding) > 0 {
-						// Cut the - from -CRLF
-						ending = parseLineEndingStyle(string(desiredEnding[1:]))
+				if p, desiredEnding := parsePragma(value); p != "" {
+					if desiredEnding != lineEndingUnknown {
+						ending = desiredEnding
 					}
-					p := normalizePath(string(match[2]))
 					switch {
 					case p == "":
-						fmt.Fprintln(os.Stderr, "Warning: ingoring empty path")
+						log.verbosef("Warning: ingoring empty path\n")
 					case isAbs(p):
-						fmt.Fprintf(os.Stderr, "Warning: absolute paths are not allowed, ignoring path: %s\n", p)
+						log.verbosef("Warning: absolute paths are not allowed, ignoring path: %s\n", p)
 					case hasDirUp(p):
-						fmt.Fprintf(os.Stderr, "Warning: using .. in paths is not allowed, ignoring path: %s\n", p)
+						log.verbosef("Warning: using .. in paths is not allowed, ignoring path: %s\n", p)
 					default:
 						// accept this path
 						path = p
@@ -145,6 +167,7 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 				if path == "" {
 					return ast.WalkContinue, nil
 				}
+				log.verbose3f("Adding script '%s' with line ending '%s'\n", path, ending.String())
 				sc := r.Output[path]
 				sc.initLineEnding(ending)
 				r.Output[path] = sc

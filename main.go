@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,6 +14,34 @@ import (
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 )
+
+type logger struct {
+	verbosity int
+	outstream io.Writer
+}
+
+func (l *logger) printf(verbosity int, format string, a ...interface{}) {
+	if verbosity <= l.verbosity {
+		fmt.Fprintf(l.outstream, format, a...)
+	}
+}
+
+func (l *logger) verbosef(format string, a ...interface{}) {
+	l.printf(1, format, a...)
+}
+
+func (l *logger) verbose2f(format string, a ...interface{}) {
+	l.printf(2, format, a...)
+}
+
+func (l *logger) verbose3f(format string, a ...interface{}) {
+	l.printf(3, format, a...)
+}
+
+var log *logger = &logger{
+	verbosity: 0,
+	outstream: os.Stderr,
+}
 
 func render(inputs [][]byte) (map[string][]byte, error) {
 	output := make(map[string]script)
@@ -47,6 +76,7 @@ func writeRendered(outDir string, output map[string][]byte) error {
 	for filename, content := range output {
 		path := filepath.Clean(filepath.Join(outDir, filename))
 		dir := filepath.Dir(path)
+		log.verbosef("Writing output: %s\n", path)
 
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return err
@@ -66,6 +96,7 @@ func main() {
 
 	flag.StringArrayVarP(&inputFiles, "input", "i", []string{}, "Markdown file to process, use - for stdin")
 	flag.StringVarP(&outDir, "out-dir", "o", ".", "Output directory.")
+	flag.CountVarP(&log.verbosity, "verbose", "v", "Control verbosity, shorthand can be given multiple times")
 	flag.Parse()
 
 	inputCnt := len(inputFiles)
@@ -79,6 +110,7 @@ func main() {
 	inputs := make([][]byte, 0, inputCnt)
 
 	for _, file := range inputFiles {
+		log.verbose2f("Processing file %s\n", file)
 		input, err := ioutil.ReadFile(file)
 		if err != nil {
 			panic(err)
