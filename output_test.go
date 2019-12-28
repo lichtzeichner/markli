@@ -79,6 +79,8 @@ OUTER:
 }
 
 func TestMain(m *testing.M) {
+	os.RemoveAll(baseDir)
+
 	if err := os.Mkdir(baseDir, 0755); err != nil {
 		panic(err)
 	}
