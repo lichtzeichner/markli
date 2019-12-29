@@ -28,7 +28,7 @@ jobs:
       run: |
         chmod +x build-all.sh
         ./build-all.sh
-        zip --junk-paths markli.zip dist/*
+        zip --junk-paths markli.zip LICENSE dist/*
 
     - name: Upload Release Asset
       if: github.event.action == 'published'
