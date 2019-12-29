@@ -94,7 +94,7 @@ func main() {
 	var outDir string
 	var rendered map[string][]byte
 
-	flag.StringArrayVarP(&inputFiles, "input", "i", []string{}, "Markdown file to process, use - for stdin")
+	flag.StringArrayVarP(&inputFiles, "input", "i", []string{}, "Markdown file to process, can be given multiple times")
 	flag.StringVarP(&outDir, "out-dir", "o", ".", "Output directory.")
 	flag.CountVarP(&log.verbosity, "verbose", "v", "Control verbosity, shorthand can be given multiple times")
 	flag.Parse()
