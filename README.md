@@ -4,7 +4,7 @@
 
 # markli
 
-markli (from **mark**down **li*terator) is a simple commandline tool to support [literate programming](https://en.wikipedia.org/wiki/Literate_programming). It's main focus is better support for setup scripts that configure build machines or there alike. Basically you have much more documentation than actual code.
+markli (from **mark**down **li**terator) is a simple commandline tool to support [literate programming](https://en.wikipedia.org/wiki/Literate_programming). It's main focus is better support for setup scripts that configure build machines or there alike. Basically you have much more documentation than actual code.
 
 ## Basic Usage
 
