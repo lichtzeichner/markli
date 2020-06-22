@@ -237,6 +237,7 @@ linters:
     - gochecknoglobals
     - golint
     - lll
+    - gomnd
   disable-all: false
   presets:
     - bugs

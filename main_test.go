@@ -5,6 +5,9 @@ package main
 import (
 	"testing"
 
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
 	"gotest.tools/assert"
 )
 
@@ -41,6 +44,18 @@ func TestMarkdownLfFileCrLf(t *testing.T) {
 	expected := "should have lf\r\nline ending\r\n"
 
 	lineEndingTestHelper(t, input, "foo.txt", expected)
+}
+
+func TestNoPragma(t *testing.T) {
+	input := []byte("### FILE: foo.txt")
+
+	file, ending := parsePragma(input)
+
+	assert.Equal(t, file, "foo.txt")
+	assert.Equal(t, ending, lineEndingUnknown)
+
+	assert.Equal(t, ending.String(), "UNKNOWN")
+	assert.Equal(t, parseLineEndingStyle("UNKNOWN"), lineEndingUnknown)
 }
 
 func TestInvalidPragma(t *testing.T) {
@@ -111,4 +126,36 @@ func TestHasDirUp(t *testing.T) {
 	assert.Assert(t, hasDirUp("f..oo") == false)
 	assert.Assert(t, hasDirUp(`foo/../bar`) == true)
 	assert.Assert(t, hasDirUp(`foo/..`) == true)
+}
+
+func TestNewScriptBlocksPanic(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("newScriptBlocks(nil) did not panic")
+		}
+	}()
+
+	newScriptBlocks(nil)
+}
+
+func TestScriptBlocksDoubleUsagePanic(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Double usage of script blocks did not panic")
+		}
+	}()
+
+	output := make(map[string]script)
+	blocks := newScriptBlocks(output)
+
+	goldmark.New(
+		goldmark.WithExtensions(extension.GFM),
+		goldmark.WithParserOptions(
+			parser.WithAutoHeadingID(),
+		),
+		goldmark.WithExtensions(
+			&blocks,
+			&blocks, // should panic
+		),
+	)
 }
