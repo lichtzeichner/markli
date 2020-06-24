@@ -23,7 +23,6 @@ type logger struct {
 }
 
 var NoInputError = errors.New("No inputs specified")
-var StdinMustBeOnlyArgumentError = errors.New("If stdin is specified, it must be the only input argument")
 
 func (l *logger) printf(verbosity int, format string, a ...interface{}) {
 	if l.outstream != nil && verbosity <= l.verbosity {
@@ -117,12 +116,6 @@ func exec(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 		fmt.Fprintf(stderr, "Usage of %s:\n", appname)
 		flags.PrintDefaults()
 		return NoInputError
-	}
-
-	for _, file := range inputFiles {
-		if strings.TrimSpace(file) == "-" && inputCnt > 1 {
-			return StdinMustBeOnlyArgumentError
-		}
 	}
 
 	inputs := make([][]byte, 0, inputCnt)

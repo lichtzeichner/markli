@@ -46,16 +46,6 @@ func TestExecInvalidCmd(t *testing.T) {
 	assert.ErrorContains(t, err, "unknown flag")
 }
 
-func TestExecStdInAndInputError(t *testing.T) {
-	args := []string{"markli", "--input=foo", "-i -"}
-	stdin := strings.NewReader("")
-	stdout := bytes.NewBufferString("")
-	stderr := bytes.NewBufferString("")
-
-	err := exec(args, stdin, stdout, stderr)
-
-	assert.Assert(t, errors.Is(err, StdinMustBeOnlyArgumentError))
-}
 func TestExecStdin(t *testing.T) {
 	dir := getTempDir(t)
 	args := []string{"markli", "-v", "-i -", "-o " + dir}
@@ -115,5 +105,31 @@ func TestExecFile(t *testing.T) {
 	}
 
 	validateFile(t, "foo.txt", []byte("Hello, World\r\n"))
+	validateDirStruct(t, dir, files)
+}
+
+func TestExecFileAndStdIn(t *testing.T) {
+	dir := getTempDir(t)
+
+	args := []string{"markli", "-i " + dir + "/input.md", "-i -", "-o " + dir}
+
+	stdin := strings.NewReader("Foo\n```sh\n### FILE-CRLF: foo.txt\nSTDIN\n```\n")
+	stdout := bytes.NewBufferString("")
+	stderr := bytes.NewBufferString("")
+
+	hw := []byte("Foo\r\n```sh\r\n### FILE-CRLF: foo.txt\r\nFILE\r\n```\r\n")
+	err := ioutil.WriteFile(dir+"/input.md", hw, 0644)
+	assert.NilError(t, err)
+
+	err = exec(args, stdin, stdout, stderr)
+
+	assert.NilError(t, err)
+
+	files := []string{
+		"input.md",
+		"foo.txt",
+	}
+
+	validateFile(t, "foo.txt", []byte("FILE\r\nSTDIN\r\n"))
 	validateDirStruct(t, dir, files)
 }
