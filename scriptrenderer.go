@@ -50,13 +50,13 @@ func parseLineEndingStyle(style string) lineEndingStyle {
 // IsAbs() returns false for /etc/passwd on windows
 // But if you do mkdir(/etc/passwd) you end up with C:/etc/passwd,
 // this is *not* what we want
-// therefore use filepath and check for / additionally
+// therefore use filepath and check for / additionally.
 func isAbs(path string) bool {
 	return filepath.IsAbs(path) || strings.HasPrefix(path, "/")
 }
 
 // filepath.ToSlash() and .Clean() have platform-dependent behavior
-// this is not helpful in this case
+// this is not helpful in this case.
 func hasDirUp(path string) bool {
 	for _, element := range strings.Split(path, "/") {
 		if element == ".." {
@@ -153,8 +153,6 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 						ending = desiredEnding
 					}
 					switch {
-					case p == "":
-						log.verbosef("Warning: ingoring empty path\n")
 					case isAbs(p):
 						log.verbosef("Warning: absolute paths are not allowed, ignoring path: %s\n", p)
 					case hasDirUp(p):
@@ -165,6 +163,7 @@ func (r *scriptRenderer) renderCodeBlock(w util.BufWriter, source []byte, node a
 					}
 				}
 				if path == "" {
+					log.verbosef("Warning: ignoring empty path\n")
 					return ast.WalkContinue, nil
 				}
 				log.verbose3f("Adding script '%s' with line ending '%s'\n", path, ending.String())

@@ -35,7 +35,7 @@ func validateFile(t *testing.T, path string, expected []byte) {
 		t.Fatal("Could not find base dir for test: " + t.Name())
 	}
 	file := filepath.Join(dir, path)
-	t.Logf("File: %s\n", file)
+	t.Logf("File: [%s]\n", file)
 	info, err := os.Stat(file)
 	assert.Assert(t, os.IsNotExist(err) == false)
 	assert.Assert(t, !info.IsDir())
